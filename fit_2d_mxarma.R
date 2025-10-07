@@ -20,9 +20,6 @@
 #'
 #'@examples
 #'
-#'y <- MxARMA::mxarma.sim(100, alpha=0.6, phi= c(0.6,0.2), theta = -0.4)
-#'mxarma.fit(y, ar=c(1,2), ma=c(1), resid = 1, h1 = 12)
-#'
 #'
 #'@importFrom stats optim
 #'@importFrom stats qnorm
