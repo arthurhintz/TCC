@@ -5,12 +5,25 @@ library(raster)
 library(ladistribution) # LA distribution
 library(mmand) # morphologic operations
 
-
 source("fit_2d_mxarma.R")
 
 
 # read in our data
-data1 <- readMat("2s1_real_A_elevDeg_015_azCenter_011_22_serial_b01.mat")
+#data1 <- readMat("2s1_real_A_elevDeg_015_azCenter_011_22_serial_b01.mat")
+
+# lendo dados do github
+
+files <- paste0("2s1_real_A_elevDeg_015_azCenter_0",10:36 ,"_22_serial_b01.mat")
+base_url <- "https://raw.githubusercontent.com/benjaminlewis-afrl/SAMPLE_dataset_public/1bae4156afcba7ad9c9f2eb743ed20675ed14fb1/mat_files/real/2s1/"
+
+data_list <- lapply(files, function(f) {
+  url <- paste0(base_url, f)
+  readMat(url)
+})
+
+names(data_list) <- files
+
+data1 <- data_list[[1]]
 
 # check out data structure
 str(data1)
