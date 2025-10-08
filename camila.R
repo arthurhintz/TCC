@@ -1,9 +1,7 @@
 library(R.matlab) # read mat files
 library(raster)
-#library(devtools) 
-#install_github("murilosagrillo/ladistribution")
-library(ladistribution) # LA distribution
 library(mmand) # morphologic operations
+library(hexbin)
 
 source("fit_2d_mxarma.R")
 
@@ -13,8 +11,8 @@ source("fit_2d_mxarma.R")
 
 # lendo dados do github
 
-files <- paste0("2s1_real_A_elevDeg_015_azCenter_0",10:36 ,"_22_serial_b01.mat")
-base_url <- "https://raw.githubusercontent.com/benjaminlewis-afrl/SAMPLE_dataset_public/1bae4156afcba7ad9c9f2eb743ed20675ed14fb1/mat_files/real/2s1/"
+files <- paste0("2s1_synth_A_elevDeg_015_azCenter_0",10:36 ,"_22_serial_b01.mat")
+base_url <- "https://raw.githubusercontent.com/benjaminlewis-afrl/SAMPLE_dataset_public/1bae4156afcba7ad9c9f2eb743ed20675ed14fb1/mat_files/synth/2s1/"
 
 data_list <- lapply(files, function(f) {
   url <- paste0(base_url, f)
@@ -23,7 +21,7 @@ data_list <- lapply(files, function(f) {
 
 names(data_list) <- files
 
-data1 <- data_list[[1]]
+data1 <- data_list[[5]]
 
 # check out data structure
 str(data1)
@@ -41,7 +39,7 @@ image(1:dim(im_matrix)[1], 1:dim(im_matrix)[2], im_matrix, xlab="", ylab="",
       main="SAR image",col =grey(seq(0, 1, length = 512)))
 
 
-y <- im_matrix[40:90, 40:90]
+y <- im_matrix[20:90, 40:110]
 
 
 fit <- mxarma2d.fit(y, 1, 1)
@@ -63,11 +61,11 @@ matbin <- ifelse(abs(resi) > 3, 1, 0)
 image(resi)
 
 sum(matbin)
-image(t(matbin)[,nrow(matbin):1], col = c("white", "black"), axes = FALSE)
+image(matbin, col = c("white", "black"), axes = FALSE)
 
 k <-matrix(1, nrow = 3, ncol = 3)
 
-E <-erode(matbin,k)
+E <- erode(matbin,k)
 D <-dilate(E, k)
 
 sum(D)
