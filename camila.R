@@ -1,7 +1,7 @@
 library(R.matlab) # read mat files
 library(raster)
 library(mmand) # morphologic operations
-library(hexbin)
+#library(hexbin)
 
 # comando para enviar para o github
 # git push origin main
@@ -116,19 +116,28 @@ image(fit_f)
 resido <- qnorm(MxARMA::pmax(teste[-1,-1], fit_f))
 
 matbin <- ifelse(abs(resido) > 3, 1, 0)
+matbin <- matrix(matbin, nrow = n-1)
 
-image(resi)
+image(t(matbin)[,nrow(matbin):1])
+
+
 sum(matbin)
-image(t(matbin)[,nrow(matbin):1], col = c("white", "black"), axes = FALSE)
+image(matbin, col = c("black", "white"), axes = FALSE)
 
 rmse <- sqrt(mean((teste[-1,-1]-fit_f)^2, na.rm = T))
 rmse
 
-k <-matrix(1, nrow = 3, ncol = 3)
+# Don't work
+# k <-matrix(1, nrow = 3, ncol = 3)
+# E <-erode(matbin,k)
+# D <-dilate(E, k)
+# sum(D)
+# image(t(D)[,nrow(D):1], col = c("black", "white"), axes = FALSE)
 
-E <-erode(matbin,k)
-D <-dilate(E, k)
+# Renata Cod
 
-sum(D)
-
-image(t(D)[,nrow(D):1], col = c("white", "black"), axes = FALSE)
+ker = mmand::shapeKernel(c(3,3), type="box") # kernel
+img2<- mmand::closing(matbin,ker)
+img3<- mmand::opening(img2,ker)
+plot(raster(img2), col =grey(seq(0, 1, length = 512)))
+plot(raster(img3), col =grey(seq(0, 1, length = 512)))
