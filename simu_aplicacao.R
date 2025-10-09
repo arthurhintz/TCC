@@ -43,13 +43,17 @@ for (i in seq_along(files)) {
   
   im <- y[-1,-1]
   
-  #RSME
+  #RMSE
   rmseM[i] <- sqrt(mean((im-ajustM)^2, na.rm = T))
   
   rmseR[i] <- sqrt(mean((im-ajustR)^2, na.rm = T))
 }
 
-dif <- rmseM - rmseR
+dif <- rmseR - rmseM
 
 max(dif)
-which.max(dif)
+which.min(rmseM)
+
+# perde 5, 22, 27, 33, 36
+# Imagem 23 mais diferença
+# Menor RMSE imagem 7

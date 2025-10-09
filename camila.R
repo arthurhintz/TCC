@@ -11,17 +11,11 @@ source("fit_2d_mxarma.R")
 
 # lendo dados do github
 
-files <- paste0("2s1_synth_A_elevDeg_015_azCenter_0",10:36 ,"_22_serial_b01.mat")
-base_url <- "https://raw.githubusercontent.com/benjaminlewis-afrl/SAMPLE_dataset_public/1bae4156afcba7ad9c9f2eb743ed20675ed14fb1/mat_files/synth/2s1/"
+files <- paste0("2s1_synth_A_elevDeg_015_azCenter_0",16,"_22_serial_b01.mat")
+url <- "https://raw.githubusercontent.com/benjaminlewis-afrl/SAMPLE_dataset_public/1bae4156afcba7ad9c9f2eb743ed20675ed14fb1/mat_files/synth/2s1/"
 
-data_list <- lapply(files, function(f) {
-  url <- paste0(base_url, f)
-  readMat(url)
-})
 
-names(data_list) <- files
-
-data1 <- data_list[[5]]
+data1 <- readMat(paste0(url,files))
 
 # check out data structure
 str(data1)
@@ -79,6 +73,9 @@ image(t(D)[,nrow(D):1], col = c("white", "black"), axes = FALSE)
 treino <- im_matrix[1:50, 1:50]
 teste <- im_matrix[41:90, 41:90]
 
+image(treino)
+image(teste)
+
 fit_1 <- mxarma2d.fit(treino, 1, 1) 
 
 
@@ -113,18 +110,16 @@ fit_f = exp(etahat[(m+1):n,(m+1):k])
 
 image(fit_f)
 
+resido <- qnorm(MxARMA::pmax(teste[-1,-1], fit_f))
 
-dife <- fit_f-treino[-1,-1]
-
-dife <- (dife - mean(dife)) / sd(dife)
-
-
-matbin <- ifelse(abs(dife) > 3, 1, 0)
+matbin <- ifelse(abs(resido) > 3, 1, 0)
 
 image(resi)
-
 sum(matbin)
 image(t(matbin)[,nrow(matbin):1], col = c("white", "black"), axes = FALSE)
+
+rmse <- sqrt(mean((teste[-1,-1]-fit_f)^2, na.rm = T))
+rmse
 
 k <-matrix(1, nrow = 3, ncol = 3)
 
