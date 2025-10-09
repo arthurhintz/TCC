@@ -5,6 +5,9 @@ library(raster)
 library(ladistribution) # LA distribution
 library(mmand) # morphologic operations
 
+# comando para enviar para o github
+# git push origin main
+
 source("fit_2d_mxarma.R")
 
 
