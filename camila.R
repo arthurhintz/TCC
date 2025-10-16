@@ -141,3 +141,4 @@ img2<- mmand::closing(matbin,ker)
 img3<- mmand::opening(img2,ker)
 plot(raster(img2), col =grey(seq(0, 1, length = 512)))
 plot(raster(img3), col =grey(seq(0, 1, length = 512)))
+
