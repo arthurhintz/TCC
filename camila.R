@@ -8,7 +8,6 @@ library(mmand) # morphologic operations
 
 source("fit_2d_mxarma.R")
 
-
 # read in our data
 #data1 <- readMat("2s1_real_A_elevDeg_015_azCenter_011_22_serial_b01.mat")
 
@@ -36,11 +35,11 @@ image(1:dim(im_matrix)[1], 1:dim(im_matrix)[2], im_matrix, xlab="", ylab="",
       main="SAR image",col =grey(seq(0, 1, length = 512)))
 
 
-y <- im_matrix[20:90, 40:110]
-
+#y <- im_matrix[20:90, 40:110]
+y <- im_matrix
 
 fit <- mxarma2d.fit(y, 1, 1)
-
+fit
 fit$fitted
 
 image(fit$fitted, xlab="", ylab="",
@@ -74,21 +73,20 @@ image(t(D)[,nrow(D):1], col = c("white", "black"), axes = FALSE)
 # irei treinar meu modelo sem o alvo e depois ajustar com ele
 
 treino <- im_matrix[1:50, 1:50]
-teste <- im_matrix[41:90, 41:90]
+teste <- im_matrix
+dim(im_matrix)
 
 image(treino)
 image(teste)
 
 fit_1 <- mxarma2d.fit(treino, 1, 1) 
-
-
 fit_1$model
 
 alpha <- fit_1$model[1,1]
 phi <- matrix(c(fit_1$model[2:4,1],0), 2)
 theta <- matrix(c(fit_1$model[5:7,1],0), 2)
 
-n = k = 50
+n = k = 128
 m =1
 etahat = errorhat = matrix(0, ncol = k, nrow = n)
 
