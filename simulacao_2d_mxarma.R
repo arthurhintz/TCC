@@ -9,15 +9,15 @@ library(doRNG)
 
       
 # Sets
-phi_values <- c(0.4, 0.3, 0.1, 0)
+phi_values <- c(0.03, 0.35, 0.25, 0)
 phi <- matrix(phi_values, ncol = 2, nrow = 2, byrow = T)
 phi
 
-theta_values <- c(0.3, 0.15, 0.05, 0)
+theta_values <- c(-0.1, -0.06, -0.008, 0)
 theta <- matrix(theta_values, ncol = 2, nrow = 2, byrow = T)
 theta
 
-alpha = 0.4
+alpha = -1.2
 nrep = 20
 p = q = 1 
 
