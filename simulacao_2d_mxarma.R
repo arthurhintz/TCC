@@ -1,14 +1,14 @@
 # Simulação
-#
+
+
 source("simu_2d_mxarma.R")
 source("fit_2d_mxarma.R")
 
 library(doParallel)
 library(doRNG)
 
-        
-        
-# Ver os valores do artigo rarma2d
+      
+# Sets
 phi_values <- c(0.4, 0.3, 0.1, 0)
 phi <- matrix(phi_values, ncol = 2, nrow = 2, byrow = T)
 phi
@@ -18,41 +18,32 @@ theta <- matrix(theta_values, ncol = 2, nrow = 2, byrow = T)
 theta
 
 alpha = 0.4
+nrep = 20
+p = q = 1 
 
-p <- 1
-q <- 1
-
-p1 = (p + 1)^2 - 1
-q1 = (q + 1)^2 - 1
-
-nrep = 2
-
-nvalores = c(10, 30, 50, 80, 150, 200, 400)
-kvalores = c(10, 30, 50, 80, 150, 200, 400)
+nvalores = c(10, 30, 50, 80, 150, 200)
+kvalores = c(10, 30, 50, 80, 150, 200)
 
 vp <- c(alpha, phi_values[-4], theta_values[-4])
-mf <- matrix(NA, ncol = length(vp), nrow = nrep)
-
-
-#results <- array(NA, dim = c(length(vp), 4, length(nvalores)))
-
-#colnames(results) <- c("parâmetros", "par_estimados", "viés_relativo", "EQM")
-colnames(mf) <- c("alpha", paste0("phi", 1:p1), paste0("theta", 1:q1))
+nm_par <- c("alpha", paste0("phi", 1:3), paste0("theta", 1:3))
+stopifnot(length(vp) == length(nm_par))
+npar <- length(nm_par)
 
 
 # paralelismo
 
-# Infraestrutura paralela
-n_cores <- parallel::detectCores() - 2L
+set.seed(2025)
+n_cores <- max(1L, parallel::detectCores() - 1L)
 cl <- parallel::makeCluster(n_cores)
 on.exit(parallel::stopCluster(cl), add = TRUE)
 
-doParallel::registerDoParallel(cl)
-# reprodutibilidade independente do número de núcleos
-doRNG::registerDoRNG(1248)   
+registerDoParallel(cl)
+doRNG::registerDoRNG(123) 
 
-parallel::clusterExport(cl, c("mxarma2d.fit", "mxarma2d.sim"), 
-                        envir = environment())
+
+parallel::clusterExport(cl, c("mxarma2d.sim", "mxarma2d.fit"), envir = environment())
+
+message(sprintf("Paralelizando com %d núcleos.", n_cores))
 
 
 for (j in seq_along(nvalores)) {
@@ -60,36 +51,41 @@ for (j in seq_along(nvalores)) {
   k <- kvalores[j]
   n <- nvalores[j]
   
-  start_time <- Sys.time()
+  nrep_j <- nrep
   
-  #if (n < 100) nrep <- 4000 else nrep <- 2000
+  mf <- foreach(i = 1:nrep_j, .combine = rbind, .inorder = TRUE,
+                .export = c("alpha","phi","theta","p","q"),
+                .errorhandling = "pass") %dopar% {
+            
+                  out <- tryCatch({
+                    rasu <- mxarma2d.sim(n = n, k = k, alpha = alpha, phi = phi, theta = theta)
+                    y <- rasu$y
+                    
+                    fit <- mxarma2d.fit(y = y, p = p, q = q)
+                    
+                    # Checa se convergiu (caso sua função tenha esse campo)
+                    if (!is.null(fit$conv) && fit$conv != 0) stop("Não convergiu")
+                    
+                    as.numeric(fit$coeff)
+                    
+                  }, error = function(e) {
+                    cat(sprintf("[Erro] n=%d k=%d rep=%d: %s\n", n, k, i, conditionMessage(e)))
+                    rep(NA_real_, npar)
+                  })
+                  
+                  out
+                }
   
-foreach::foreach(i = 1:nrep, .combine = rbind) %dopar% {
-    
-    rasu <- mxarma2d.sim(n = n, k = k, alpha = alpha,
-                         phi = phi, theta = theta)
-    
-    y <- rasu$y
-    
-    fit <- mxarma2d.fit(y = y, p = p, q = q)
-    mf[i,] <- fit$coeff
-    
-    end_time <- Sys.time()
-    elapsed <- round(difftime(end_time, start_time, units = "secs"), 2)
-    
-    cat(
-      sprintf("[%s] n = %d (%d×%d) | rep = %d | tempo = %s s\n",
-              format(Sys.time(), "%H:%M:%S"),
-              j, n, k, i, elapsed)
-    )
-    
-  }
+  mf <- as.data.frame(mf, optional = TRUE, stringsAsFactors = FALSE)
+  colnames(mf) <- nm_par
   
-  write.table(mf, paste0("simu_2DMxARMA_nk", n, ".txt"),
-              row.names = FALSE, quote = FALSE)
+  
+  arq_out <- paste0("simu_2DMxARMA_nk", n, ".txt")
+  utils::write.table(mf, file = arq_out, row.names = FALSE, col.names = TRUE, quote = FALSE)
+  
+  message(sprintf("Concluído: j=%d, n=%d, k=%d, réplicas=%d -> %s",
+                  j, n, k, nrep_j, arq_out))
 }
-
-cat("Simulação concluída às", format(Sys.time(), "%H:%M:%S"), "\n")
 
 
 
