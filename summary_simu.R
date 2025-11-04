@@ -31,6 +31,8 @@ resumindo <- function(arquivo, pars_true, ic = 0.05, n){
   
   write.table(resu, file = summary_filename, row.names = T, quote = FALSE)
   
+  return(resu)
+  
 }
 
 
@@ -61,3 +63,55 @@ resumindo(arquivo, pars_true)
 arquivo = "simu_2DMxARMA_nk80.txt"
 resumindo(arquivo, pars_true)
 
+
+#==========/==========/==========/==========/==========/==========/==========/==========/
+# Tabelas para o latex
+
+
+library(xtable)
+library(tidyverse)
+library(kableExtra)
+
+n <- c(10, 30, 50, 80)
+
+arquivos <- paste0("results_simu/summary_simu_2DMxARMA_nk", n ,".txt")
+
+
+arquivo <- read.table(file = arquivos[1], header = T)
+
+arquivo <- arquivo |> 
+  select(Parametro, Media, RB, EQM)
+
+arquivo <- arquivo |> mutate(
+  Parametro = paste0("$", Parametro, "$"),
+  Media    = paste0("$", format(Media, nsmall = 2), "$"),
+  RB       = paste0("$", format(RB, nsmall = 2), "$"),
+  EQM      = paste0("$", format(EQM, nsmall = 2), "$"),
+)
+
+arquivo$Measures <- recode(row.names(arquivo),
+                            "alpha" = "$\\alpha$",
+                            "phi1" = "$\\phi_{0,0}$",
+                            "phi2" = "$\\phi_{1,0}$",
+                            "phi3" = "$\\phi_{0,1}$",
+                            "theta1" = "$\\theta_{0,0}$",
+                            "theta2" = "$\\theta_{1,0}$",
+                            "theta3" = "$\\theta_{0,1}$")
+
+arquivo <- arquivo %>%
+  relocate(Measures, .before = 1)
+
+rownames(arquivo) <- NULL
+
+
+tabela_latex <- arquivo |>
+  kbl(format = "latex", booktabs = TRUE, escape = FALSE,
+      align = "lrrrr",
+      col.names = c("Measures", "Parameter", "Mean", "RB(\\%)", "MSE")) 
+
+
+# Exibir o código LaTeX formatado
+cat(tabela_latex)
+
+
+class(arquivo)
