@@ -74,34 +74,51 @@ library(kableExtra)
 
 n <- c(10, 30, 50, 80)
 
-arquivos <- paste0("results_simu/summary_simu_2DMxARMA_nk", n ,".txt")
+lista_tabelas <- list()
+
+for(i in seq_along(n)){
+  
+  k <- n[i]
+  
+  arquivo_nome <- paste0("results_simu/summary_simu_2DMxARMA_nk", k ,".txt")
+  
+  arquivo <- read.table(file = arquivo_nome, header = TRUE)
+  
+  rn <- row.names(arquivo)
+  
+  arquivo <- arquivo |> 
+    select(Parametro, Media, RB, EQM) |> 
+    mutate(
+      Parametro = paste0("$", Parametro, "$"),
+      Media     = paste0("$", format(Media, nsmall = 2), "$"),
+      RB        = paste0("$", format(RB, nsmall = 2), "$"),
+      EQM       = paste0("$", format(EQM, nsmall = 2), "$"),
+      Measures = recode(rn,
+                        "alpha"  = "$\\alpha$",
+                        "phi1"   = "$\\phi_{0,0}$",
+                        "phi2"   = "$\\phi_{1,0}$",
+                        "phi3"   = "$\\phi_{0,1}$",
+                        "theta1" = "$\\theta_{0,0}$",
+                        "theta2" = "$\\theta_{1,0}$",
+                        "theta3" = "$\\theta_{0,1}$")
+    ) |> 
+    mutate(n = k)      
+  
+  lista_tabelas[[i]] <- arquivo
+}
 
 
-arquivo <- read.table(file = arquivos[1], header = T)
 
-arquivo <- arquivo |> 
-  select(Parametro, Media, RB, EQM)
+# Junta tudo em uma única tabela
+tabela_final <- bind_rows(lista_tabelas)
 
-arquivo <- arquivo |> mutate(
-  Parametro = paste0("$", Parametro, "$"),
-  Media    = paste0("$", format(Media, nsmall = 2), "$"),
-  RB       = paste0("$", format(RB, nsmall = 2), "$"),
-  EQM      = paste0("$", format(EQM, nsmall = 2), "$"),
-)
 
-arquivo$Measures <- recode(row.names(arquivo),
-                            "alpha" = "$\\alpha$",
-                            "phi1" = "$\\phi_{0,0}$",
-                            "phi2" = "$\\phi_{1,0}$",
-                            "phi3" = "$\\phi_{0,1}$",
-                            "theta1" = "$\\theta_{0,0}$",
-                            "theta2" = "$\\theta_{1,0}$",
-                            "theta3" = "$\\theta_{0,1}$")
+tabela_final <- tabela_final %>%
+  relocate(Measures, n,.before = 1) |> 
+  arrange(Measures)
 
-arquivo <- arquivo %>%
-  relocate(Measures, .before = 1)
 
-rownames(arquivo) <- NULL
+rownames(tabela_final) <- NULL
 
 
 tabela_latex <- arquivo |>
@@ -114,4 +131,82 @@ tabela_latex <- arquivo |>
 cat(tabela_latex)
 
 
-class(arquivo)
+#==========/==========/==========/==========/==========/==========/==========/==========/
+# Gráfico do Viés
+
+
+n <- c(10, 30, 50, 80)
+
+lista_graph <- list()
+
+for(i in seq_along(n)){
+  
+  k <- n[i]
+  
+  arquivo_nome <- paste0("results_simu/summary_simu_2DMxARMA_nk", k ,".txt")
+  
+  arquivo <- read.table(file = arquivo_nome, header = TRUE)
+  
+  rn <- row.names(arquivo)
+  
+  arquivo <- arquivo |> 
+    mutate(
+      Parameter = recode(rn,
+                         "alpha"  = "alpha",
+                         "phi1"   = "phi_{0,0}",
+                         "phi2"   = "phi_{1,0}",
+                         "phi3"   = "phi_{0,1}",
+                         "theta1" = "theta_{0,0}",
+                         "theta2" = "theta_{1,0}",
+                         "theta3" = "theta_{0,1}")
+    ) |> 
+    select(Parameter, RB) |> 
+    mutate(n = k)
+  
+  lista_graph[[i]] <- arquivo
+}
+
+lista_graph
+
+graph_final <- bind_rows(lista_graph)
+
+rownames(graph_final) <- NULL
+
+graph_final$RB <- pmin(graph_final$RB, 100)
+
+
+
+graph_final <- graph_final |>
+  mutate(
+    par_group = case_when(
+      grepl("^alpha", Parameter) ~ "alpha",
+      grepl("^phi",   Parameter) ~ "phi",
+      grepl("^theta", Parameter) ~ "theta",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+
+
+linetypes <- c("alpha" = "solid", "phi" = "dashed", "theta" = "dotdash")
+colors <- c("alpha" = "darkblue", "phi" = "darkred", "theta" = "darkgreen")
+
+graph_final |> 
+  ggplot(aes(
+    x = n,
+    y = RB,
+    group = Parameter,        # legenda detalhada
+    color = par_group,        # cor por família
+    linetype = par_group      # linha por família
+  )) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  scale_color_manual(values = colors) +
+  scale_linetype_manual(values = linetypes) +
+  coord_cartesian(ylim = c(-100, 30)) +
+  labs(x = "Sample size", y = "RB (%)", color = "Parameter", linetype = "Parameter") +
+  theme_minimal()
+
+
+
