@@ -18,7 +18,8 @@ resumindo <- function(arquivo, pars_true, ic = 0.05, n){
   resu <- data.frame(
       Parametro = pars_true,
       Media = media_pars,
-      RB = ((media_pars - pars_true) / pars_true) * 100, 
+      #RB = ((media_pars - pars_true) / pars_true) * 100,
+      RMSE = sqrt(colMeans((tabela-pars_true)^2, na.rm = T)),
       Var = var_pars,
       EQM = ((media_pars - pars_true)^2 + var_pars),
       MAE = colMeans(abs(tabela - pars_true), na.rm = T)
@@ -34,6 +35,7 @@ resumindo <- function(arquivo, pars_true, ic = 0.05, n){
   return(resu)
   
 }
+
 
 
 pars_true <- c(-1.2, 0.03, 0.35, 0.25, -0.1, -0.06, -0.008)
@@ -87,11 +89,11 @@ for(i in seq_along(n)){
   rn <- row.names(arquivo)
   
   arquivo <- arquivo |> 
-    select(Parametro, Media, RB, EQM) |> 
+    select(Parametro, Media, RMSE, EQM) |> 
     mutate(
       Parametro = paste0("$", Parametro, "$"),
       Media     = paste0("$", format(Media, nsmall = 2), "$"),
-      RB        = paste0("$", format(RB, nsmall = 2), "$"),
+      RB        = paste0("$", format(RMSE, nsmall = 2), "$"),
       EQM       = paste0("$", format(EQM, nsmall = 2), "$"),
       Measures = recode(rn,
                         "alpha"  = "$\\alpha$",
@@ -132,7 +134,7 @@ cat(tabela_latex)
 
 
 #==========/==========/==========/==========/==========/==========/==========/==========/
-# Gráfico do Viés
+# Gráfico do RMSE
 
 
 n <- c(10, 30, 50, 80)
@@ -160,7 +162,7 @@ for(i in seq_along(n)){
                          "theta2" = "theta_{1,0}",
                          "theta3" = "theta_{0,1}")
     ) |> 
-    select(Parameter, RB) |> 
+    select(Parameter, RMSE) |> 
     mutate(n = k)
   
   lista_graph[[i]] <- arquivo
@@ -172,7 +174,7 @@ graph_final <- bind_rows(lista_graph)
 
 rownames(graph_final) <- NULL
 
-graph_final$RB <- pmin(graph_final$RB, 100)
+#graph_final$RMSE <- pmin(graph_final$RMSE, 100)
 
 
 
@@ -195,7 +197,7 @@ colors <- c("alpha" = "darkblue", "phi" = "darkred", "theta" = "darkgreen")
 graph_final |> 
   ggplot(aes(
     x = n,
-    y = RB,
+    y = RMSE,
     group = Parameter,        # legenda detalhada
     color = par_group,        # cor por família
     linetype = par_group      # linha por família
@@ -204,7 +206,7 @@ graph_final |>
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   scale_color_manual(values = colors) +
   scale_linetype_manual(values = linetypes) +
-  coord_cartesian(ylim = c(-100, 30)) +
+  coord_cartesian(ylim = c(0, 2)) +
   labs(x = "Sample size", y = "RB (%)", color = "Parameter", linetype = "Parameter") +
   theme_minimal()
 
