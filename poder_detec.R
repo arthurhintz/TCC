@@ -104,7 +104,7 @@ for (i in 1:nrep){
   detec_por_pos <- colSums(resu, na.rm = TRUE)
   
   # Posição é considerada detectada se apareceu em >= 3 rotações
-  pos_detectadas <- detec_por_pos >= 3
+  pos_detectadas <- detec_por_pos >= 1
   
   # Erro tipo II = não detectar
   erro2[i] <- 1 - sum(as.numeric(pos_detectadas)) / nw
