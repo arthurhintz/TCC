@@ -1,9 +1,6 @@
-library(dplyr)
-library(tidyr)
-
+library(tidyverse)
 
 # Função para resumir os resultados
-
 
 resumindo <- function(arquivo, pars_true, ic = 0.05, n){
   
@@ -66,6 +63,14 @@ arquivo = "simu_2DMxARMA_nk80.txt"
 resumindo(arquivo, pars_true)
 
 
+#nk 100
+
+
+arquivo = "simu_2DMxARMA_nk100.txt"
+resumindo(arquivo, pars_true)
+
+
+
 #==========/==========/==========/==========/==========/==========/==========/==========/
 # Tabelas para o latex
 
@@ -74,7 +79,7 @@ library(xtable)
 library(tidyverse)
 library(kableExtra)
 
-n <- c(10, 30, 50, 80)
+n <- c(10, 30, 50, 100)
 
 lista_tabelas <- list()
 
@@ -88,28 +93,34 @@ for(i in seq_along(n)){
   
   rn <- row.names(arquivo)
   
-  arquivo <- arquivo |> 
-    select(Parametro, Media, RMSE, EQM) |> 
+  # Vetor com os símbolos LaTeX sem o valor numérico
+  latex_symbols <- c(
+    alpha  = "\\alpha",
+    phi1   = "\\phi_{0,0}",
+    phi2   = "\\phi_{1,0}",
+    phi3   = "\\phi_{0,1}",
+    theta1 = "\\theta_{0,0}",
+    theta2 = "\\theta_{1,0}",
+    theta3 = "\\theta_{0,1}"
+  )
+  
+  arquivo <- arquivo |>
     mutate(
-      Parametro = paste0("$", Parametro, "$"),
-      Media     = paste0("$", format(Media, nsmall = 2), "$"),
-      RB        = paste0("$", format(RMSE, nsmall = 2), "$"),
-      EQM       = paste0("$", format(EQM, nsmall = 2), "$"),
-      Measures = recode(rn,
-                        "alpha"  = "$\\alpha$",
-                        "phi1"   = "$\\phi_{0,0}$",
-                        "phi2"   = "$\\phi_{1,0}$",
-                        "phi3"   = "$\\phi_{0,1}$",
-                        "theta1" = "$\\theta_{0,0}$",
-                        "theta2" = "$\\theta_{1,0}$",
-                        "theta3" = "$\\theta_{0,1}$")
+      Mean = paste0("$", format(Media, nsmall = 2), "$"),
+      RMSE  = paste0("$", format(RMSE, nsmall = 2), "$"),
+      EQM   = paste0("$", format(EQM, nsmall = 2), "$"),
+      Measures = paste0(
+        "$", latex_symbols[rn], " = ", format(Parametro, nsmall = 2), "$"
+      ),
+      n = k
     ) |> 
-    mutate(n = k)      
+    select(Measures, n, Mean, RMSE, EQM)
   
   lista_tabelas[[i]] <- arquivo
 }
 
 
+lista_tabelas
 
 # Junta tudo em uma única tabela
 tabela_final <- bind_rows(lista_tabelas)
@@ -123,10 +134,10 @@ tabela_final <- tabela_final %>%
 rownames(tabela_final) <- NULL
 
 
-tabela_latex <- arquivo |>
+tabela_latex <- tabela_final |>
   kbl(format = "latex", booktabs = TRUE, escape = FALSE,
       align = "lrrrr",
-      col.names = c("Measures", "Parameter", "Mean", "RB(\\%)", "MSE")) 
+      col.names = c("Measures", "N = M", "Mean", "RMSE", "MSE")) 
 
 
 # Exibir o código LaTeX formatado
@@ -137,7 +148,7 @@ cat(tabela_latex)
 # Gráfico do RMSE
 
 
-n <- c(10, 30, 50, 80)
+n <- c(10, 30, 50, 80, 100)
 
 lista_graph <- list()
 
@@ -162,7 +173,7 @@ for(i in seq_along(n)){
                          "theta2" = "theta_{1,0}",
                          "theta3" = "theta_{0,1}")
     ) |> 
-    select(Parameter, RMSE) |> 
+    select(Parameter, MAE) |> 
     mutate(n = k)
   
   lista_graph[[i]] <- arquivo
@@ -197,7 +208,7 @@ colors <- c("alpha" = "darkblue", "phi" = "darkred", "theta" = "darkgreen")
 graph_final |> 
   ggplot(aes(
     x = n,
-    y = RMSE,
+    y = MAE,
     group = Parameter,        # legenda detalhada
     color = par_group,        # cor por família
     linetype = par_group      # linha por família
