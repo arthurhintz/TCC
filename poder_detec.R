@@ -1,8 +1,8 @@
 library(MxARMA)
 library(doParallel)
 
-source("2D_MxARMA/fit_2d_mxarma.R")
-source("2D_MxARMA/simu_2d_mxarma.R")
+source("fit_2d_mxarma.R")
+source("simu_2d_mxarma.R")
 
 
 # Nessa simulação fixei 9 posições juntas, porém irei validar apenas quando 
@@ -12,7 +12,7 @@ source("2D_MxARMA/simu_2d_mxarma.R")
 set.seed(1248)
 
 n = 10
-nrep <- 100
+nrep <- 1000
 
 matriz_pos <- matrix(0, 4, 9)
 resu <- matrix(NA, 4, 9)
