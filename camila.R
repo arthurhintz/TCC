@@ -35,6 +35,15 @@ image(1:dim(im_matrix)[1], 1:dim(im_matrix)[2], im_matrix, xlab="", ylab="",
       main="SAR image",col =grey(seq(0, 1, length = 512)))
 
 
+
+alvo_bin <- ifelse(im_matrix > 0.05, 1, 0)
+
+image(alvo_bin)
+
+sum(alvo_bin) / (128 * 128) # relação entre alvo e imagem
+
+mean(im_matrix[which(im_matrix>0.05)]) / mean(im_matrix)
+
 #y <- im_matrix[20:90, 40:110]
 y <- im_matrix
 
