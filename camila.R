@@ -6,6 +6,9 @@ library(mmand) # morphologic operations
 # comando para enviar para o github
 # git push origin main
 
+#devtools::install_github("arthurhintz/MxARMA")
+library(MxARMA)
+
 source("fit_2d_mxarma.R")
 
 # read in our data
@@ -44,8 +47,8 @@ sum(alvo_bin) / (128 * 128) # relação entre alvo e imagem
 
 mean(im_matrix[which(im_matrix>0.05)]) / mean(im_matrix)
 
-#y <- im_matrix[20:90, 40:110]
-y <- im_matrix
+y <- im_matrix[20:90, 40:110]
+#y <- im_matrix
 
 fit <- mxarma2d.fit(y, 1, 1)
 fit

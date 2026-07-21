@@ -12,7 +12,7 @@ source("simu_2d_mxarma.R")
 set.seed(1248)
 
 n = 10
-nrep <- 1000
+nrep <- 10
 
 matriz_pos <- matrix(0, 4, 9)
 resu <- matrix(NA, 4, 9)
@@ -24,7 +24,15 @@ matriz_pos[1,] <- c(14, 15, 16, 24, 25, 26, 34, 35, 36)
 nw <- ncol(matriz_pos)
 
 # Valores para os parametros phi e theta
-x <- c(seq(-0.3, -0.05, 0.02), seq(0.05, 0.3, 0.02)) # tirei o 0
+#x <- c(seq(-0.3, -0.05, 0.02), seq(0.05, 0.3, 0.02)) # tirei o 0
+
+# Fixando valores para geracao
+phi_values   <- c(0.03, 0.35, 0.25, 0)
+theta_values <- c(-0.1, -0.06, -0.008, 0)
+phi   <- matrix(phi_values,   ncol = 2, byrow = TRUE)
+theta <- matrix(theta_values, ncol = 2, byrow = TRUE)
+alpha <- -1.2
+
 
 rotate90 <- function(mat) {
   t(apply(mat, 2, rev))
@@ -51,11 +59,11 @@ doParallel::registerDoParallel(cores = n_cores)
 for (i in 1:nrep){
   print(i)
 
-  w <- runif(nw, 1, 40)
+  w <- runif(nw, 1, 10)
   
-  alpha <- runif(1, max = 0.6)
-  phi <- matrix(c(sample(x,3), 0), ncol = 2)
-  theta <- matrix(c(sample(x,3), 0), ncol = 2)
+  #alpha <- runif(1, max = 0.6)
+  #phi <- matrix(c(sample(x,3), 0), ncol = 2)
+  #theta <- matrix(c(sample(x,3), 0), ncol = 2)
   
   sim <- tryCatch(
     mxarma2d.sim(n, n, alpha, phi, theta),

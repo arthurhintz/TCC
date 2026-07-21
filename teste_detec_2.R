@@ -1,4 +1,8 @@
 library(MxARMA)
+library(doParallel)
+
+source("fit_2d_mxarma.R")
+source("simu_2d_mxarma.R")
 
 # Nessa simulação fixei 9 posições juntas para verificar a capacidade de detecção
 # Principal resultados
@@ -10,13 +14,20 @@ library(MxARMA)
 set.seed(1248)
 
 n = 10
-nrep <- 5000
+nrep <- 10
 
 posicoes <- c(14, 15, 16, 24, 25, 26, 34, 35, 36)
 nw <- length(posicoes)
 
 # Valores para os parametros phi e theta
-x <- c(seq(-0.3, -0.05, 0.05), seq(0.05, 0.6, 0.05)) # tirei o 0
+#x <- c(seq(-0.3, -0.05, 0.05), seq(0.05, 0.6, 0.05)) # tirei o 0
+
+# Fixando valores para geracao
+phi_values   <- c(0.03, 0.35, 0.25, 0)
+theta_values <- c(-0.1, -0.06, -0.008, 0)
+phi   <- matrix(phi_values,   ncol = 2, byrow = TRUE)
+theta <- matrix(theta_values, ncol = 2, byrow = TRUE)
+alpha <- -1.2
 
 erro1 <- matrix(NA, nrow = nrep, ncol = 4)
 erro2 <- matrix(NA, nrow = nrep, ncol = 4)
@@ -33,9 +44,9 @@ for (i in 1:nrep){
   
   w <- runif(nw, 1, 40)
   
-  alpha <- runif(1, max = 0.6)
-  phi <- matrix(c(sample(x,3), 0), ncol = 2)
-  theta <- matrix(c(sample(x,3), 0), ncol = 2)
+  #alpha <- runif(1, max = 0.6)
+  #phi <- matrix(c(sample(x,3), 0), ncol = 2)
+  #theta <- matrix(c(sample(x,3), 0), ncol = 2)
   
   sim <- tryCatch(
     mxarma2d.sim(n, n, alpha, phi, theta),
