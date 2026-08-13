@@ -146,7 +146,7 @@ rmse
 
 # Renata Cod
 
-ker = mmand::shapeKernel(c(3,3), type="box") # kernel
+ker = mmand::shapeKernel(c(5,5), type="box") # kernel
 img2<- mmand::closing(matbin,ker)
 img3<- mmand::opening(img2,ker)
 plot(raster(img2), col =grey(seq(0, 1, length = 512)))

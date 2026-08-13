@@ -13,11 +13,22 @@ source("simu_2d_mxarma.R")
 # Sets
 set.seed(1248)
 
-n = 10
-nrep <- 10
+n = 30
+nrep <- 500
 
-posicoes <- c(14, 15, 16, 24, 25, 26, 34, 35, 36)
-nw <- length(posicoes)
+
+t_dim <- 3
+pos_i <- n / 2 - t_dim   
+
+#posicoes <- c(14, 15, 16, 24, 25, 26, 34, 35, 36)  
+# Have a problem when I fixed the position but I change the dimention of the matrix
+
+
+coords <- expand.grid(row = pos_i:(pos_i+t_dim),
+                      col = pos_i:(pos_i+t_dim))
+posicoes <- cbind(coords$row, coords$col)
+
+nw <- nrow(posicoes)
 
 # Valores para os parametros phi e theta
 #x <- c(seq(-0.3, -0.05, 0.05), seq(0.05, 0.6, 0.05)) # tirei o 0
@@ -41,8 +52,8 @@ rotate90 <- function(mat) {
 for (i in 1:nrep){
   
   print(i)
-  
-  w <- runif(nw, 1, 40)
+
+  w <- runif(nw, 1, 10)
   
   #alpha <- runif(1, max = 0.6)
   #phi <- matrix(c(sample(x,3), 0), ncol = 2)
@@ -71,7 +82,7 @@ for (i in 1:nrep){
   
   #image(y)
   
-  m_bin <- matrix(0, nrow = nrow(y), ncol = ncol(y))
+  m_bin <- matrix(0, n, n)
   m_bin[posicoes] <- 1
   
   # Visualizar
@@ -83,12 +94,13 @@ for (i in 1:nrep){
   
   for(j in 1:4){
     
-    y <- rotate90(y)
+    if(j > 1){
+      y <- rotate90(y)
+      m_bin <- rotate90(m_bin)
+    }
     
-    m_bin <- rotate90(m_bin)
-    
-    posicoes <- which(m_bin > 0)
-    
+    pos_rot <- which(m_bin > 0)
+
     fit <- tryCatch(
       mxarma2d.fit(y, 1, 1),
       error = function(e) return(NULL)
@@ -119,18 +131,18 @@ for (i in 1:nrep){
     
     # Erro tipo II(Falso negativo) (Não detectar)
     
-    erro2[i, j] <- 1 - sum(resi_bin[posicoes]) / nw
+    erro2[i, j] <- 1 - sum(resi_bin[pos_rot]) / nw
     
     # Erro tipo I (Falso positivo) (detectou quando não existe)
     
-    erro1[i, j] <- sum(resi_bin[-posicoes]) / (n*n-nw)
+    erro1[i, j] <- sum(resi_bin[-pos_rot]) / (n*n-nw)
     
   }
   
 }
 
-write.table(erro1, "erro1_simu2.txt", row.names = FALSE, col.names = FALSE)
-write.table(erro2, "erro2_simu2.txt", row.names = FALSE, col.names = FALSE)
+write.table(erro1, "erro1_16alvo_30dim.txt", row.names = FALSE, col.names = FALSE)
+write.table(erro2, "erro2_16alvo_30dim.txt", row.names = FALSE, col.names = FALSE)
 
 erro1
 erro2
@@ -144,7 +156,7 @@ legend("topright", legend = paste("Col", 1:ncol(erro2)),
        col = 1:ncol(erro2), lty = 1, cex = 0.8)
 
 
-e1 <- read.table("erro1_simu2.txt")
+e1 <- read.table("erro1_16alvo_30dim.txt")
 
 colSums(is.na(e1)) # 2% não convergiu
 100/5000*100
@@ -152,6 +164,6 @@ colSums(is.na(e1)) # 2% não convergiu
 mean(rowMeans(e1, na.rm = T), na.rm = T)
 
 
-e2 <- read.table("erro2_simu2.txt")
-
+e2 <- read.table("erro2_16alvo_30dim.txt")
+e2
 mean(rowMeans(e2, na.rm = T), na.rm = T)

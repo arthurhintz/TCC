@@ -11,7 +11,7 @@ source("simu_2d_mxarma.R")
 # Sets
 set.seed(1248)
 
-n = 10
+n = 40
 nrep <- 10
 
 matriz_pos <- matrix(0, 4, 9)
@@ -132,6 +132,6 @@ legend("topright", legend = paste("Col", 1:ncol(erro2)),
        col = 1:ncol(erro2), lty = 1, cex = 0.8)
 
 
-e2 <- read.table("erro2_simu2.txt")
+e2 <- read.table("erro2_simu3.txt")
 
 mean(rowMeans(e2, na.rm = T), na.rm = T)
