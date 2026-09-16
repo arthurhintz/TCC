@@ -11,7 +11,7 @@ source("simu_2d_mxarma.R")
 # Sets
 set.seed(1248)
 
-n = 40
+n = 10
 nrep <- 10
 
 matriz_pos <- matrix(0, 4, 9)

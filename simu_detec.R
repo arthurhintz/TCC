@@ -12,29 +12,50 @@ phi   <- matrix(phi_values,   ncol = 2, byrow = TRUE)
 theta <- matrix(theta_values, ncol = 2, byrow = TRUE)
 alpha <- -1.2
 
-n = k = 10
-nrep = 100
+n = k = 30
+nrep = 1000
 m = 1
 
-# Posições e rotações
-matriz_pos <- matrix(0, 4, 16)
-matriz_pos[1,] <- c(14,15,16,17, 24,25,26,27, 34,35,36,37, 44,45,46,47)
+
+
+# Target position
+#matriz_pos <- matrix(0, 4, 16)
+#matriz_pos[1,] <- c(14,15,16,17, 24,25,26,27, 34,35,36,37, 44,45,46,47)
+
+# 4 x 4 target
+t_dim <- 4
+
+# center of target
+start_row <- floor((n - t_dim) / 2) + 1
+start_col <- floor((k - t_dim) / 2) + 1
+
+target_mask <- matrix(0, n, k)
+
+target_mask[
+  start_row:(start_row + t_dim - 1),
+  start_col:(start_col + t_dim - 1)
+] <- 1
+
+nw <- sum(target_mask)
 
 rotate90 <- function(mat) t(apply(mat, 2, rev))
 
-# gerar as 4 rotações
-for (r in 2:4) {
-  temp <- matrix(0, n, n)
-  temp[ matriz_pos[r-1,] ] <- 1
-  temp <- rotate90(temp)
-  matriz_pos[r,] <- which(temp == 1)
-}
-nw <- ncol(matriz_pos)  # número de alvo (9)
+# # gerar as 4 rotações
+# for (r in 2:4) {
+#   temp <- matrix(0, n, n)
+#   temp[ matriz_pos[r-1,] ] <- 1
+#   temp <- rotate90(temp)
+#   matriz_pos[r,] <- which(temp == 1)
+# }
+# nw <- ncol(matriz_pos)  # number of target 16
 
 
+# Error vectors
 erro2 <- numeric(nrep)  # falso negativo por réplica
 erro1 <- numeric(nrep)  # falso positivo por réplica
 
+#==========/==========/==========/==========/==========/==========/==========/==========/
+#-- Loop start 
 
 for (i in 1:nrep) {
   
@@ -43,32 +64,41 @@ for (i in 1:nrep) {
   sim <- mxarma2d.sim(n, n, alpha, phi, theta)
   y_orig <- sim$y  # sem alvo injetado
   
-  detections_by_rotation <- matrix(0, nrow = 4, ncol = nw)
+  #detections_by_rotation <- matrix(0, nrow = 4, ncol = nw)
+  #fp_count_by_rotation <- numeric(4)
   
-  fp_count_by_rotation <- numeric(4)
+  detection_union <- matrix(0, n, k)
   
+#==========/==========/==========/==========/==========/==========/==========/==========/  
   for (rot in 1:4) {
     
     y_rot <- y_orig
+    mask_rot <- target_mask
+    
     if (rot > 1) {
-      for (t in 2:rot) {
-        y_rot <- rotate90(y_rot)
+      for (r in 2:rot) {
+        y_rot    <- rotate90(y_rot)
+        mask_rot <- rotate90(mask_rot)
       }
     }
-    
+#==========/==========/==========/==========/==========/==========/==========/==========/    
+    # Fit model without target
     fit <- mxarma2d.fit(y_rot, 1, 1)
     alpha_hat <- fit$alpha
     phi_hat   <- fit$phi
     theta_hat <- fit$theta
     
-    # 2) colocando os alvos
+#==========/==========/==========/==========/==========/==========/==========/==========/
+    # Inject Targets 
     y_inj <- y_rot
-    #y_inj[ matriz_pos[rot,] ] <- 3 * max(y_rot)
-    y_inj[ matriz_pos[rot,] ] <- 20 * mean(y_rot) # é maios ou menos isso a diferença da aplicacao
+    
+    y_inj[mask_rot == 1] <- 20 * mean(y_rot) # é maios ou menos isso a diferença da aplicacao
     
     ylog <- log(y_inj)
     
-    # 3) calcula etahat e errorhat usando os coeficientes estimados
+#==========/==========/==========/==========/==========/==========/==========/==========/
+# Calculate fitted values and errors
+    
     etahat   <- matrix(0, n, n)
     errorhat <- matrix(0, n, n)
     
@@ -84,48 +114,120 @@ for (i in 1:nrep) {
       }
     }
     
+#==========/==========/==========/==========/==========/==========/==========/==========/    
+    # Quantile residuals
+    
     fit_f <- exp(etahat[(m+1):n, (m+1):k])
     # observe que y[-1,-1] e fit_f têm dimensão (n-1)x(n-1)
     
-    resi_mat <- qnorm(MxARMA::pmax(y_rot[-1, -1], fit_f))
+    resi_mat <- qnorm(MxARMA::pmax(y_inj[-1, -1], fit_f))
     # garantir forma (n-1) x (n-1)
     
-    resi_mat <- matrix(resi_mat, nrow = n-1)
+    resi_mat <- matrix(
+      resi_mat,
+      nrow = n - m,
+      ncol = k - m
+    )
     
-    resi_bin <- ifelse(abs(resi_mat) > 3, 1, 0)
-    resi_bin <- rbind(rep(0, n-1), resi_bin)   # adiciona primeira linha de zeros
-    resi_bin <- cbind(rep(0, n), resi_bin)     # adiciona primeira coluna de zeros
-    # agora resi_bin é n x n e pode indexar por posições lineares
+#==========/==========/==========/==========/==========/==========/==========/==========/    
+    # Detection
     
-    # 6) guarda detections nas posições verdadeiras DESSA rotação
-    detections_by_rotation[rot, ] <- resi_bin[ matriz_pos[rot,]]
+    resi_bin_small <- ifelse(abs(resi_mat) > 3, 1,0)
     
-    # 7) falso positivos: contar detections fora das nw posições
-    fp_count_by_rotation[rot] <- sum(resi_bin) - sum(resi_bin[matriz_pos[rot,]])
+    # Put residual matrix back into n x k grid
+    resi_bin <- matrix(0, n, k)
+    
+    resi_bin[(m + 1):n,(m + 1):k] <- resi_bin_small
+    
+#==========/==========/==========/==========/==========/==========/==========/==========/
+    # Return detection to original orientation
+        
+    detection_original <- resi_bin
+    
+    if (rot > 1) {
+      # inverse rotation:
+      # rot = 2 -> rotate 3 times
+      # rot = 3 -> rotate 2 times
+      # rot = 4 -> rotate 1 time
+      
+      for (r in 1:(5 - rot)) {
+        detection_original <- rotate90(detection_original)
+      }
+    }
+    
+    # Union:
+    # detected if detected in at least one rotation
+    detection_union <- base::pmax(
+      detection_union,
+      detection_original
+    )
   }
+    
+#==========/==========/==========/==========/==========/==========/==========/==========/
+  # Type I and Type II errors
   
-  # --- agregação entre rotações: posição detectada se detectada em pelo menos 1 rotação ---
-  detected_any_rotation <- apply(detections_by_rotation, 2, function(col) any(col == 1))
-  # erro tipo II (falso negativo) = 1 - (nº detectadas / nw)
-  erro2[i] <- 1 - (sum(detected_any_rotation) / nw)
+  # True Positive
+  TP <- sum(detection_union == 1 & target_mask == 1)
   
-  # erro tipo I (falso positivo)
-  detected_grid_union <- matrix(0, n, n)
-  for (rot in 1:4) {
-    NULL
-  }
-  # usar a média de FP por rotação (simplificação): FP rate = mean(fp_count_by_rotation) / (n*n - nw)
-  erro1[i] <- mean(fp_count_by_rotation) / (n*n - nw)
+  # False negatives
+  FN <- sum(detection_union == 0 & target_mask == 1)
   
-  #if (i %% 10 == 0) cat("Rep:", i, " FN=", round(erro2[i],3), " FP=", round(erro1[rep_idx],4), "\n")
+  # False positives
+  FP <- sum(detection_union == 1 & target_mask == 0)
+  
+  # True negatives
+  TN <- sum(detection_union == 0 & target_mask == 0)
+  
+  # Type II error = false negative rate
+  erro2[i] <- FN / (TP + FN)
+  
+  # Type I error = false positive rate
+  erro1[i] <- FP / (FP + TN)
+  
+  cat("TP =", TP, "FN =", FN, "FP =", FP, "TN =", TN, "\n")
+  
+  cat(
+    "Type II =", round(erro2[i], 4),
+    "Type I =", round(erro1[i], 4),
+    "\n"
+  )
 }
+  
+#     # 6) guarda detections nas posições verdadeiras DESSA rotação
+#     detections_by_rotation[rot, ] <- resi_bin[ matriz_pos[rot,]]
+#     
+#     # 7) falso positivos: contar detections fora das nw posições
+#     fp_count_by_rotation[rot] <- sum(resi_bin) - sum(resi_bin[matriz_pos[rot,]])
+#   }
+#   
+#   # --- agregação entre rotações: posição detectada se detectada em pelo menos 1 rotação ---
+#   detected_any_rotation <- apply(detections_by_rotation, 2, function(col) any(col == 1))
+#   # erro tipo II (falso negativo) = 1 - (nº detectadas / nw)
+#   erro2[i] <- 1 - (sum(detected_any_rotation) / nw)
+#   
+#   # erro tipo I (falso positivo)
+#   detected_grid_union <- matrix(0, n, n)
+#   for (rot in 1:4) {
+#     NULL
+#   }
+#   # usar a média de FP por rotação (simplificação): FP rate = mean(fp_count_by_rotation) / (n*n - nw)
+#   erro1[i] <- mean(fp_count_by_rotation) / (n*n - nw)
+#   
+#   #if (i %% 10 == 0) cat("Rep:", i, " FN=", round(erro2[i],3), " FP=", round(erro1[rep_idx],4), "\n")
+# }
 
-# resultados
-cat("Erro tipo II (FN) por réplica:\n")
+#==========/==========/==========/==========/==========/==========/==========/==========/
+# Results
+
+cat("\nType II error (FN rate):\n")
 print(erro2)
-cat("Erro tipo I (FP) por réplica (estimativa média por rotação):\n")
+
+cat("\nType I error (FP rate):\n")
 print(erro1)
 
-# médias
-cat("Média Erro tipo 2 =", mean(erro2), "   Média Erro tipo 1 =", mean(erro1), "\n")
+cat(
+  "\nMean Type II =", mean(erro2),
+  "\nMean Type I  =", mean(erro1),
+  "\n"
+)
 
