@@ -26,9 +26,9 @@ theta <- matrix(
 
 alpha <- -1.2
 
-n = k = 30
+n = k = 50
 
-target_dim <- 1
+target_dim <- 10
 
 nrep <- 500
 m <- 1
